@@ -1,0 +1,407 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// Enums
+enum JenisKelamin {
+  LAKI_LAKI
+  PEREMPUAN
+}
+
+enum JenisKelas {
+  PUTRA
+  PUTRI
+}
+
+enum Semester {
+  GANJIL
+  GENAP
+}
+
+enum StatusSiswa {
+  AKTIF
+  LULUS
+  PINDAH
+  KELUAR
+}
+
+enum StatusGuru {
+  AKTIF
+  TIDAK_AKTIF
+}
+
+enum JenisMapel {
+  UMUM
+  AGAMA
+  HAFALAN
+}
+
+enum PredikatHafalan {
+  SANGAT_BAIK
+  BAIK
+  CUKUP
+  KURANG
+}
+
+enum PredikatSikap {
+  SANGAT_BAIK
+  BAIK
+  CUKUP
+  KURANG
+}
+
+enum KategoriSikap {
+  SOSIAL
+  SPIRITUAL
+}
+
+enum StatusRaport {
+  DRAFT
+  FINAL
+}
+
+enum StatusKenaikan {
+  NAIK
+  TINGGAL_KELAS
+  LULUS
+}
+
+// Models
+model Siswa {
+  id            String   @id @default(cuid())
+  nis           String   @unique
+  nama          String
+  jenisKelamin  JenisKelamin @map("jenis_kelamin")
+  agama         String
+  alamat        String
+  tempatLahir   String   @map("tempat_lahir")
+  tanggalLahir  DateTime @map("tanggal_lahir")
+  namaAyah      String   @map("nama_ayah")
+  pekerjaanAyah String   @map("pekerjaan_ayah")
+  namaIbu       String   @map("nama_ibu")
+  pekerjaanIbu  String   @map("pekerjaan_ibu")
+  namaWali      String?  @map("nama_wali")
+  pekerjaanWali String?  @map("pekerjaan_wali")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  riwayatKelas      RiwayatKelas[]
+  penempatanKamar   PenempatanKamar[]
+  nilaiUjian        NilaiUjian[]
+  nilaiHafalan      NilaiHafalan[]
+  kehadiran         Kehadiran[]
+  nilaiSikap        NilaiSikap[]
+  catatanWaliKelas  CatatanWaliKelas[]
+  raport            Raport[]
+  kenaikanKelas     KenaikanKelas[]
+
+  @@map("siswas")
+}
+
+model Guru {
+  id           String      @id @default(cuid())
+  nip          String      @unique
+  nama         String
+  jenisKelamin JenisKelamin @map("jenis_kelamin")
+  tempatLahir  String      @map("tempat_lahir")
+  tanggalLahir DateTime    @map("tanggal_lahir")
+  alamat       String
+  telepon      String?
+  email        String?     @unique
+  status       StatusGuru  @default(AKTIF)
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  waliKelas         WaliKelas[]
+  catatanWaliKelas  CatatanWaliKelas[]
+
+  @@map("gurus")
+}
+
+model Kelas {
+  id          String     @id @default(cuid())
+  nama        String
+  tingkat     Int
+  jenis       JenisKelas
+  kapasitas   Int
+  tahunAjaran String     @map("tahun_ajaran")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  // Relations
+  waliKelas     WaliKelas[]
+  riwayatKelas  RiwayatKelas[]
+  raport        Raport[]
+  kenaikanKelas KenaikanKelas[]
+
+  @@unique([nama, tahunAjaran])
+  @@map("kelas")
+}
+
+model WaliKelas {
+  id          String   @id @default(cuid())
+  guruId      String   @map("guru_id")
+  kelasId     String   @map("kelas_id")
+  tahunAjaran String   @map("tahun_ajaran")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  guru  Guru  @relation(fields: [guruId], references: [id], onDelete: Cascade)
+  kelas Kelas @relation(fields: [kelasId], references: [id], onDelete: Cascade)
+
+  @@unique([guruId, tahunAjaran])
+  @@unique([kelasId, tahunAjaran])
+  @@map("wali_kelas")
+}
+
+model RiwayatKelas {
+  id          String      @id @default(cuid())
+  siswaId     String      @map("siswa_id")
+  kelasId     String      @map("kelas_id")
+  tahunAjaran String      @map("tahun_ajaran")
+  semester    Semester
+  status      StatusSiswa @default(AKTIF)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  siswa Siswa @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  kelas Kelas @relation(fields: [kelasId], references: [id], onDelete: Cascade)
+
+  @@unique([siswaId, tahunAjaran, semester])
+  @@map("riwayat_kelas")
+}
+
+model Kamar {
+  id        String     @id @default(cuid())
+  nama      String     @unique
+  jenis     JenisKelas
+  kapasitas Int
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  // Relations
+  penempatanKamar PenempatanKamar[]
+
+  @@map("kamars")
+}
+
+model PenempatanKamar {
+  id          String   @id @default(cuid())
+  siswaId     String   @map("siswa_id")
+  kamarId     String   @map("kamar_id")
+  tahunAjaran String   @map("tahun_ajaran")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  siswa Siswa @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  kamar Kamar @relation(fields: [kamarId], references: [id], onDelete: Cascade)
+
+  @@unique([siswaId, tahunAjaran])
+  @@map("penempatan_kamar")
+}
+
+model MataPelajaran {
+  id    String     @id @default(cuid())
+  nama  String     @map("nama_mapel")
+  jenis JenisMapel
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  nilaiUjian   NilaiUjian[]
+  nilaiHafalan NilaiHafalan[]
+
+  @@map("matapelajarans")
+}
+
+model NilaiUjian {
+  id          String   @id @default(cuid())
+  siswaId     String   @map("siswa_id")
+  mapelId     String   @map("mapel_id")
+  nilai       Float
+  semester    Semester
+  tahunAjaran String   @map("tahun_ajaran")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  siswa Siswa        @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  mapel MataPelajaran @relation(fields: [mapelId], references: [id], onDelete: Cascade)
+
+  @@unique([siswaId, mapelId, semester, tahunAjaran])
+  @@map("nilaiujians")
+}
+
+model NilaiHafalan {
+  id             String          @id @default(cuid())
+  siswaId        String          @map("siswa_id")
+  mapelId        String          @map("mapel_id")
+  kitab          String
+  batasanMinimal String          @map("batasan_minimal")
+  predikat       PredikatHafalan
+  semester       Semester
+  tahunAjaran    String          @map("tahun_ajaran")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  siswa Siswa        @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  mapel MataPelajaran @relation(fields: [mapelId], references: [id], onDelete: Cascade)
+
+  @@unique([siswaId, mapelId, semester, tahunAjaran])
+  @@map("nilaihafalans")
+}
+
+model IndikatorKehadiran {
+  id   String @id @default(cuid())
+  nama String @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  kehadiran Kehadiran[]
+
+  @@map("indikatorkehadirans")
+}
+
+model Kehadiran {
+  id           String   @id @default(cuid())
+  siswaId      String   @map("siswa_id")
+  indikatorId  String   @map("indikator_id")
+  izin         Int      @default(0)
+  sakit        Int      @default(0)
+  absen        Int      @default(0)
+  semester     Semester
+  tahunAjaran  String   @map("tahun_ajaran")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  siswa     Siswa              @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  indikator IndikatorKehadiran @relation(fields: [indikatorId], references: [id], onDelete: Cascade)
+
+  @@unique([siswaId, indikatorId, semester, tahunAjaran])
+  @@map("kehadirans")
+}
+
+model IndikatorSikap {
+  id       String        @id @default(cuid())
+  kategori KategoriSikap
+  nama     String
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  nilaiSikap NilaiSikap[]
+
+  @@map("indikator_sikap")
+}
+
+model NilaiSikap {
+  id          String        @id @default(cuid())
+  siswaId     String        @map("siswa_id")
+  indikatorId String        @map("indikator_id")
+  predikat    PredikatSikap
+  catatan     String?
+  semester    Semester
+  tahunAjaran String        @map("tahun_ajaran")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  siswa     Siswa         @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  indikator IndikatorSikap @relation(fields: [indikatorId], references: [id], onDelete: Cascade)
+
+  @@unique([siswaId, indikatorId, semester, tahunAjaran])
+  @@map("nilai_sikap")
+}
+
+model CatatanWaliKelas {
+  id           String   @id @default(cuid())
+  siswaId      String   @map("siswa_id")
+  waliId       String   @map("wali_id")
+  catatanSikap String?  @map("catatan_sikap")
+  catatanNilai String?  @map("catatan_nilai")
+  semester     Semester
+  tahunAjaran  String   @map("tahun_ajaran")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  siswa Siswa @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  wali  Guru  @relation(fields: [waliId], references: [id], onDelete: Cascade)
+
+  @@unique([siswaId, waliId, semester, tahunAjaran])
+  @@map("catatan_wali_kelas")
+}
+
+model Raport {
+  id          String       @id @default(cuid())
+  siswaId     String       @map("siswa_id")
+  kelasId     String       @map("kelas_id")
+  semester    Semester
+  tahunAjaran String       @map("tahun_ajaran")
+  totalNilai  Float?       @map("total_nilai")
+  status      StatusRaport @default(DRAFT)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  siswa Siswa @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  kelas Kelas @relation(fields: [kelasId], references: [id], onDelete: Cascade)
+
+  @@unique([siswaId, semester, tahunAjaran])
+  @@map("raports")
+}
+
+model KenaikanKelas {
+  id                String        @id @default(cuid())
+  siswaId           String        @map("siswa_id")
+  kelasAsalId       String        @map("kelas_asal_id")
+  kelasTujuanId     String?       @map("kelas_tujuan_id")
+  tahunAjaranAsal   String        @map("tahun_ajaran_asal")
+  tahunAjaranTujuan String        @map("tahun_ajaran_tujuan")
+  rataRataNilai     Float         @map("rata_rata_nilai")
+  totalAbsensi      Int           @map("total_absensi")
+  statusHafalan     String        @map("status_hafalan")
+  status            StatusKenaikan
+  catatan           String?
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  siswa       Siswa  @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  kelasAsal   Kelas  @relation(fields: [kelasAsalId], references: [id], onDelete: Cascade)
+  kelasTujuan Kelas? @relation("KenaikanKelasTujuan", fields: [kelasTujuanId], references: [id])
+
+  @@unique([siswaId, tahunAjaranAsal])
+  @@map("kenaikan_kelas")
+}
+
+model PromotionPolicy {
+  id                    String  @id @default(cuid())
+  tahunAjaran           String  @map("tahun_ajaran")
+  minRataRataNilai      Float   @map("min_rata_rata_nilai")
+  maxTotalAbsensi       Int     @map("max_total_absensi")
+  requiredHafalanStatus String  @map("required_hafalan_status")
+  isActive              Boolean @default(true) @map("is_active")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@unique([tahunAjaran])
+  @@map("promotion_policies")
+}

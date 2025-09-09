@@ -58,6 +58,11 @@ const navigation = [
     icon: Calendar,
   },
   {
+    name: "Absensi",
+    href: "/dashboard/attendance",
+    icon: Users,
+  },
+  {
     name: "Nilai",
     href: "/dashboard/grades",
     icon: BarChart3,

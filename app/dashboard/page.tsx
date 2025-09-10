@@ -3,6 +3,14 @@ import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, GraduationCap, BookOpen, Building } from "lucide-react"
 
+// Helper function to determine status from a Kehadiran record
+const getStatusFromKehadiran = (record: { sakit: number; izin: number; absen: number; }) => {
+  if (record.sakit > 0) return "🤒 Sakit"
+  if (record.izin > 0) return "📝 Izin"
+  if (record.absen > 0) return "❌ Tidak Hadir"
+  return "Catatan Kehadiran" // Default netral jika data tidak valid
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient()
 
@@ -11,38 +19,43 @@ export default async function DashboardPage() {
     redirect("/auth/login")
   }
 
-  // Get user profile
+  // Get user profile (assuming 'profiles' table with 'full_name' still exists from old schema/triggers)
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", data.user.id).single()
 
-  // Get basic statistics
+  // Mengambil data dari tabel yang benar sesuai schema.prisma
   const [studentsCount, teachersCount, classesCount, subjectsCount] = await Promise.all([
-    supabase.from("students").select("id", { count: "exact" }),
-    supabase.from("teachers").select("id", { count: "exact" }),
-    supabase.from("classes").select("id", { count: "exact" }),
-    supabase.from("subjects").select("id", { count: "exact" }),
+    supabase.from("siswas").select("id", { count: "exact" }),
+    supabase.from("gurus").select("id", { count: "exact" }),
+    supabase.from("kelas").select("id", { count: "exact" }),
+    supabase.from("matapelajarans").select("id", { count: "exact" }),
   ])
 
+  // Query ke 'kehadirans' dan relasi yang benar
   const { data: recentAttendance } = await supabase
-    .from("attendance")
+    .from("kehadirans")
     .select(`
       *,
-      student:students(full_name),
-      subject:subjects(name)
+      siswa:siswas(nama),
+      mapel:matapelajarans(nama_mapel)
     `)
     .order("created_at", { ascending: false })
     .limit(5)
 
-  const today = new Date().toISOString().split("T")[0]
-  const { data: todayAttendance } = await supabase.from("attendance").select("status").eq("date", today)
+  // Menghitung total absensi semester, karena schema tidak mendukung harian
+  const { data: semesterAttendance } = await supabase.from("kehadirans").select("sakit, izin, absen")
 
+  // PERBAIKAN: Menghapus logika 'hadir'
   const attendanceStats =
-    todayAttendance?.reduce(
+    semesterAttendance?.reduce(
       (acc, record) => {
-        acc[record.status] = (acc[record.status] || 0) + 1
+        acc.sakit += record.sakit || 0
+        acc.izin += record.izin || 0
+        acc.absen += record.absen || 0
         return acc
       },
-      {} as Record<string, number>,
-    ) || {}
+      { sakit: 0, izin: 0, absen: 0 }, // 'hadir' telah dihapus
+    ) || { sakit: 0, izin: 0, absen: 0 }
+
 
   const stats = [
     {
@@ -76,6 +89,7 @@ export default async function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
+          {/* Menggunakan profile.full_name, asumsi tabel ini tidak dikelola Prisma */}
           <p className="text-muted-foreground">Selamat datang, {profile?.full_name || data.user.email}</p>
         </div>
       </div>
@@ -103,38 +117,24 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <p>
-                <strong>Nama:</strong> {profile?.full_name}
-              </p>
-              <p>
-                <strong>Email:</strong> {data.user.email}
-              </p>
-              <p>
-                <strong>Peran:</strong> {profile?.role}
-              </p>
+              <p><strong>Nama:</strong> {profile?.full_name}</p>
+              <p><strong>Email:</strong> {data.user.email}</p>
+              <p><strong>Peran:</strong> {profile?.role}</p>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Absensi Hari Ini</CardTitle>
-            <CardDescription>Ringkasan kehadiran siswa</CardDescription>
+            <CardTitle>Total Ketidakhadiran Semester Ini</CardTitle>
+            <CardDescription>Ringkasan total absensi siswa</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <p className="text-sm">
-                <span className="text-green-600">✅ Hadir:</span> {attendanceStats.PRESENT || 0}
-              </p>
-              <p className="text-sm">
-                <span className="text-red-600">❌ Tidak Hadir:</span> {attendanceStats.ABSENT || 0}
-              </p>
-              <p className="text-sm">
-                <span className="text-yellow-600">🤒 Sakit:</span> {attendanceStats.SICK || 0}
-              </p>
-              <p className="text-sm">
-                <span className="text-blue-600">📝 Izin:</span> {attendanceStats.PERMISSION || 0}
-              </p>
+              {/* PERBAIKAN: Baris 'Hadir' telah dihapus */}
+              <p className="text-sm"><span className="text-red-600">❌ Tidak Hadir:</span> {attendanceStats.absen}</p>
+              <p className="text-sm"><span className="text-yellow-600">🤒 Sakit:</span> {attendanceStats.sakit}</p>
+              <p className="text-sm"><span className="text-blue-600">📝 Izin:</span> {attendanceStats.izin}</p>
             </div>
           </CardContent>
         </Card>
@@ -143,28 +143,20 @@ export default async function DashboardPage() {
       {recentAttendance && recentAttendance.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Aktivitas Terbaru</CardTitle>
-            <CardDescription>Absensi yang baru saja dicatat</CardDescription>
+            <CardTitle>Aktivitas Kehadiran Terbaru</CardTitle>
+            <CardDescription>Catatan kehadiran yang baru saja ditambahkan</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {recentAttendance.map((record: any) => (
                 <div key={record.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <div>
-                    <p className="font-medium">{record.student?.full_name}</p>
-                    <p className="text-sm text-muted-foreground">{record.subject?.name}</p>
+                    <p className="font-medium">{record.siswa?.nama}</p>
+                    <p className="text-sm text-muted-foreground">{record.mapel?.nama_mapel}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-medium">
-                      {record.status === "PRESENT"
-                        ? "✅ Hadir"
-                        : record.status === "ABSENT"
-                          ? "❌ Tidak Hadir"
-                          : record.status === "SICK"
-                            ? "🤒 Sakit"
-                            : "📝 Izin"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{record.date}</p>
+                    <p className="text-sm font-medium">{getStatusFromKehadiran(record)}</p>
+                    <p className="text-xs text-muted-foreground">{new Date(record.created_at).toLocaleDateString("id-ID")}</p>
                   </div>
                 </div>
               ))}
@@ -175,3 +167,4 @@ export default async function DashboardPage() {
     </div>
   )
 }
+

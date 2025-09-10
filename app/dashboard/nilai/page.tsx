@@ -97,7 +97,7 @@ export default function GradesPage() {
 
   const fetchGrades = async () => {
     try {
-      const response = await fetch(`/api/grades?academic_year=${selectedAcademicYear}&semester=${selectedSemester}`)
+      const response = await fetch(`/api/nilaiujians?academic_year=${selectedAcademicYear}&semester=${selectedSemester}`)
       if (response.ok) {
         const data = await response.json()
         setGrades(data)

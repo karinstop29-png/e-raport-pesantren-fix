@@ -36,7 +36,7 @@ export default function SubjectsPage() {
 
   const fetchSubjects = async () => {
     try {
-      const response = await fetch("/api/subjects")
+      const response = await fetch("/api/mataplejarans")
       if (response.ok) {
         const data = await response.json()
         setSubjects(data)

@@ -54,7 +54,7 @@ export default function TeachersPage() {
 
   const fetchTeachers = async () => {
     try {
-      const response = await fetch("/api/teachers")
+      const response = await fetch("/api/gurus")
       if (response.ok) {
         const data = await response.json()
         setTeachers(data)

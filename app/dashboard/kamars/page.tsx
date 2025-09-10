@@ -55,7 +55,7 @@ export default function DormitoriesPage() {
 
   const fetchDormitories = async () => {
     try {
-      const response = await fetch("/api/dormitories")
+      const response = await fetch("/api/kamars")
       if (response.ok) {
         const data = await response.json()
         setDormitories(data)

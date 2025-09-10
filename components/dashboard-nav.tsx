@@ -21,6 +21,7 @@ import {
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 
+// PERBAIKAN: Semua nilai 'href' telah disesuaikan
 const navigation = [
   {
     name: "Dashboard",
@@ -29,42 +30,42 @@ const navigation = [
   },
   {
     name: "Siswa",
-    href: "/dashboard/students",
+    href: "/dashboard/siswas", // Diperbarui
     icon: Users,
   },
   {
     name: "Guru",
-    href: "/dashboard/teachers",
+    href: "/dashboard/gurus", // Diperbarui
     icon: GraduationCap,
   },
   {
     name: "Kelas",
-    href: "/dashboard/classes",
+    href: "/dashboard/kelas", // Diperbarui
     icon: BookOpen,
   },
   {
     name: "Mata Pelajaran",
-    href: "/dashboard/subjects",
+    href: "/dashboard/matapelajarans", // Diperbarui
     icon: ClipboardList,
   },
   {
     name: "Asrama",
-    href: "/dashboard/dormitories",
+    href: "/dashboard/kamars", // Diperbarui
     icon: Building,
   },
   {
     name: "Jadwal",
-    href: "/dashboard/schedules",
+    href: "/dashboard/jadwals", // Diperbarui (untuk masa depan)
     icon: Calendar,
   },
   {
     name: "Absensi",
-    href: "/dashboard/attendance",
+    href: "/dashboard/attendance", // Tetap sama, sesuaikan jika Anda mengubah folder ini
     icon: Users,
   },
   {
     name: "Nilai",
-    href: "/dashboard/grades",
+    href: "/dashboard/grades", // Diperbarui
     icon: BarChart3,
   },
   {
@@ -103,7 +104,7 @@ export function DashboardNav() {
       <div className="flex-1 px-3">
         <ul className="space-y-1">
           {navigation.map((item) => {
-            const isActive = pathname === item.href
+            const isActive = pathname.startsWith(item.href) // Menggunakan startsWith untuk sub-halaman
             return (
               <li key={item.name}>
                 <Link

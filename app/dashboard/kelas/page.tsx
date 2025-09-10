@@ -62,7 +62,7 @@ export default function ClassesPage() {
 
   const fetchClasses = async () => {
     try {
-      const response = await fetch("/api/classes")
+      const response = await fetch("/api/kelas")
       if (response.ok) {
         const data = await response.json()
         setClasses(data)

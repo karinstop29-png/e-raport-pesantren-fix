@@ -58,7 +58,7 @@ export default function StudentsPage() {
 
   const fetchStudents = async () => {
     try {
-      const response = await fetch("/api/students")
+      const response = await fetch("/api/siswas")
       if (response.ok) {
         const data = await response.json()
         setStudents(data)

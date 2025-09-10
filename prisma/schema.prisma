@@ -6,9 +6,11 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("POSTGRES_PRISMA_URL")
+  // The directUrl is required for tasks like migrations.
+  // Make sure to define POSTGRES_URL_NON_POOLING in your .env file.
+  directUrl = env("POSTGRES_URL_NON_POOLING")
 }
 
 // Enums
@@ -140,14 +142,16 @@ model Kelas {
   updatedAt   DateTime   @updatedAt @map("updated_at")
 
   // Relations
-  waliKelas     WaliKelas[]
-  riwayatKelas  RiwayatKelas[]
-  raport        Raport[]
-  kenaikanKelas KenaikanKelas[]
+  waliKelas            WaliKelas[]
+  riwayatKelas         RiwayatKelas[]
+  raport               Raport[]
+  kenaikanKelas        KenaikanKelas[]
+  kenaikanKelasTujuan  KenaikanKelas[] @relation("KenaikanKelasTujuan")
 
   @@unique([nama, tahunAjaran])
   @@map("kelas")
 }
+
 
 model WaliKelas {
   id          String   @id @default(cuid())

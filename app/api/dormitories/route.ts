@@ -12,13 +12,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { data, error } = await supabase
-      .from("dormitories")
-      .select(`
-        *,
-        supervisor:teachers(*)
-      `)
-      .order("name")
+    const { data, error } = await supabase.from("kamars").select("*").order("nama")
 
     if (error) throw error
     return NextResponse.json(data)

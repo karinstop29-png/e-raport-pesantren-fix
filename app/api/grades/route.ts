@@ -17,16 +17,15 @@ export async function GET(request: NextRequest) {
     const semester = searchParams.get("semester") || "GANJIL"
 
     const { data, error } = await supabase
-      .from("grades")
+      .from("nilaiujians")
       .select(`
         *,
-        student:students(*),
-        subject:subjects(*),
-        teacher:teachers(*)
+        siswa:siswas(*),
+        matapelajaran:matapelajarans(*)
       `)
-      .eq("academic_year", academicYear)
+      .eq("tahun_ajaran", academicYear)
       .eq("semester", semester)
-      .order("total_score", { ascending: false })
+      .order("nilai", { ascending: false })
 
     if (error) throw error
     return NextResponse.json(data)
